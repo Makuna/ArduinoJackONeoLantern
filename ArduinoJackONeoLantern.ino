@@ -5,65 +5,120 @@
 // general constants
 const RgbColor BlackColor = RgbColor(0,0,0);
 
-// proximity sensor constants
-#define ProximitySensorAnalogIndex 0 // note:  This is specifically the analog index, not physical pin
-#define ProximityThreshold 85 // larger is closer, 65-512 usable ranges
-#define ProximityConsecutiveReadings 8 // number of readings at thresholds before changing proximity state
+// radioactive effect 
+enum RadioActiveState
+{
+  RadioActiveState_Stabil,
+  RadioActiveState_Increasing,
+  RadioActiveState_Decreasing
+};
+#define GlowMaxInterval 2000
+#define GlowMinInterval 1000
+#define StabilMaxInterval 2000
+#define StabilMinInterval 500
+const RgbColor RadioActiveLowColor = RgbColor(50,150, 0);
+const RgbColor RadioActiveStabilColor = RgbColor(60,160, 0);
+const RgbColor RadioActiveHighColor = RgbColor(124,228, 0);
+const int RadioActivePixel[] = {0, 1, 2, 3}; 
+RadioActiveState radioActiveState = RadioActiveState_Stabil;
  
-// proximity effect constants
-const RgbColor ProximityColor = RgbColor(128,0, 0);
-const int EffectPixel[] = {0, 1, 2, 3}; 
-
- 
-// candle effect constants
+// candle effect 
 #define CandleFlickerMaxInterval 400
 #define CandleFlickerMinInterval 100
 const RgbColor DimCandleColor = RgbColor(16, 0, 0);
 const RgbColor BrightCandleColor = RgbColor(92, 64, 8);
 const int CandlePixel[] = {1, 2}; 
  
-// proximity sensor variables
-int proximityInRangeReadings = 0;
-bool isProximityDetected = false;
+// cycle effect
+#define CycleMinBrightness 35
+#define CycleMaxBrightness 200
+#define CycleBlend1 85
+#define CycleBlend2 170
+#define CycleInterval 1000
+const int CyclePixel[] = {0, 1, 2, 3};  
+RgbColor CycleLeftColor = RgbColor(0,255,0);
+RgbColor CycleRightColor = RgbColor(255,0,0);
+RgbColor CycleNewColor;
+int CycleState = 0;
  
-// candle effect variables 
-NeoPixelBus strip = NeoPixelBus(4, 2);
+enum Effect
+{
+  Effect_Candle,
+  Effect_RadioActive,
+  Effect_Cycle,
+  Effect_COUNT
+};
 
+#define ChangeEffectTimer (5 * 60 * 1000) // 5 minutes in milliseconds
+
+// Variables
+NeoPixelBus strip = NeoPixelBus(4, 2);
+Effect activeEffect = Effect_Candle;
+uint32_t effectChangeTick;
+  
 void setup()
 {
   strip.Begin();
   strip.Show(); 
   randomSeed(analogRead(2));
   Serial.begin(9600);
+  
+  effectChangeTick = millis() - ChangeEffectTimer; // pick new effect emediately
 }
  
 void loop()
 {
-//  if (UpdateProximityDetection())
-//  {
-//    if (isProximityDetected)
-//    {
-//     TurnOffCandleEffect();
-//      TurnOnProximityEffect();
-//    }
-//    else
-//    {
-//      TurnOffProximityEffect();
-//      TurnOnCandleEffect();
-//    }
-//  }
-
-  if (isProximityDetected)
+  uint32_t currentTick = millis();
+  
+  if (currentTick - effectChangeTick > ChangeEffectTimer)
   {
-    UpdateProximityEffect();
+    effectChangeTick = currentTick;
+    
+    switch (activeEffect)
+    {
+      case Effect_Candle:
+        TurnOffCandleEffect();
+        break;
+      case Effect_RadioActive:
+        TurnOffRadioActiveEffect();
+        break;
+      case Effect_Cycle:
+        TurnOffCycleEffect();
+        break;
+    }
+    
+    activeEffect = (Effect)random(0, Effect_COUNT);
+    
+    switch (activeEffect)
+    {
+      case Effect_Candle:
+        TurnOnCandleEffect();
+        break;
+      case Effect_RadioActive:
+        TurnOnRadioActiveEffect();
+        break;
+      case Effect_Cycle:
+        TurnOnCycleEffect();
+        break;
+    }
+    strip.StartAnimating();
   }
-  else
+  
+  switch (activeEffect)
   {
-    UpdateCandleEffect();
+    case Effect_Candle:
+      UpdateCandleEffect();
+      break;
+    case Effect_RadioActive:
+      UpdateRadioActiveEffect();
+      break;
+    case Effect_Cycle:
+      UpdateCycleEffect();
+      break;
   }
-
 }
  
+
 void TurnOffCandleEffect()
 {
   Serial.println("candle off");
@@ -99,25 +154,25 @@ void UpdateCandleEffect()
   }
 }
  
-void TurnOffProximityEffect()
+void TurnOffRadioActiveEffect()
 {
-  Serial.println("proximity off");
-  for (int pixel = 0; pixel < CountOf(EffectPixel); pixel++)
+  Serial.println("radioactive off");
+  for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
   {
-    strip.SetPixelColor(EffectPixel[pixel], BlackColor);
+    strip.SetPixelColor(RadioActivePixel[pixel], BlackColor);
   }
 }
  
-void TurnOnProximityEffect()
+void TurnOnRadioActiveEffect()
 {
-  Serial.println("proximity on");
-  for (int pixel = 0; pixel < CountOf(EffectPixel); pixel++)
+  Serial.println("radioactive on");
+  for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
   {
-    strip.LinearFadePixelColor(10, EffectPixel[pixel], ProximityColor);
+    strip.LinearFadePixelColor(10, RadioActivePixel[pixel], RadioActiveLowColor);
   }
 }
  
-void UpdateProximityEffect()
+void UpdateRadioActiveEffect()
 {
   if (strip.IsAnimating())
   {
@@ -125,39 +180,137 @@ void UpdateProximityEffect()
     strip.Show();
     delay(31); // ~30hz change cycle
   }
+  else
+  {
+    switch (radioActiveState)
+    {
+      case RadioActiveState_Stabil:
+        // change to increasing
+        {
+          uint16_t time = random(GlowMinInterval, GlowMaxInterval);
+          
+          for (int pixel = 0; pixel <  CountOf(RadioActivePixel); pixel++)
+          {
+            uint8_t brightness = random(127) + 128;
+            RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveHighColor, brightness);
+
+            strip.LinearFadePixelColor(time, RadioActivePixel[pixel], color);
+          }
+        }
+        radioActiveState = RadioActiveState_Increasing;
+        break;
+      case RadioActiveState_Increasing:
+        // change to decreasing
+        {
+          uint16_t time = random(GlowMinInterval, GlowMaxInterval);
+          
+          for (int pixel = 0; pixel <  CountOf(RadioActivePixel); pixel++)
+          {
+            uint8_t brightness = random(127);
+            RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStabilColor, brightness);
+
+            strip.LinearFadePixelColor(time, RadioActivePixel[pixel], color);
+          }
+        }
+        radioActiveState = RadioActiveState_Decreasing;
+        break;
+      case RadioActiveState_Decreasing:
+        // change to stabil
+        {
+          uint16_t time = random(StabilMinInterval, StabilMaxInterval);
+          
+          for (int pixel = 0; pixel <  CountOf(RadioActivePixel); pixel++)
+          {
+            uint8_t brightness = random(255);
+            RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStabilColor, brightness);
+
+            strip.LinearFadePixelColor(time, RadioActivePixel[pixel], color);
+          }
+        }
+        radioActiveState = RadioActiveState_Stabil;
+        break;
+    }
+  }
 }
 
-bool UpdateProximityDetection()
+void TurnOffCycleEffect()
 {
-  int proximity = analogRead(ProximitySensorAnalogIndex);
-  bool previousState = isProximityDetected;
-  
-  // leakey bucket implementation for state change
-  // this provides a debounce filter
-  //
-  
-  // update count of in range readings
-  if (proximity > ProximityThreshold)
+  Serial.println("cycle off");
+  for (int pixel = 0; pixel < CountOf(CyclePixel); pixel++)
   {
-    // fill to limit
-    proximityInRangeReadings = min(ProximityConsecutiveReadings, proximityInRangeReadings + 1);
+    strip.SetPixelColor(CyclePixel[pixel], BlackColor);
   }
-  else if (proximityInRangeReadings > 0)
+}
+ 
+void TurnOnCycleEffect()
+{
+  Serial.println("cycle on");
+  uint8_t blend = CycleBlend1;
+  RgbColor color;
+
+  strip.LinearFadePixelColor(10, CyclePixel[0], CycleRightColor);
+  color = RgbColor::LinearBlend(CycleRightColor, CycleLeftColor, blend);
+  strip.LinearFadePixelColor(10, CyclePixel[1], color);
+  color = RgbColor::LinearBlend(CycleRightColor, CycleLeftColor, CycleBlend2);
+  strip.LinearFadePixelColor(10, CyclePixel[2], color);
+  strip.LinearFadePixelColor(10, CyclePixel[3], CycleLeftColor);
+}
+ 
+void UpdateCycleEffect()
+{
+  if (strip.IsAnimating())
   {
-    // leak
-    proximityInRangeReadings--;
+    strip.UpdateAnimations();
+    strip.Show();
+    delay(31); // ~30hz change cycle
   }
-  
-  // test thresholds and set state only if thresholds are reached
-  // otherwise leave the state alone
-  if (proximityInRangeReadings == ProximityConsecutiveReadings)
+  else
   {
-    isProximityDetected = true;
+    switch (CycleState)
+    {
+      case 0:
+        {
+          CycleNewColor = RgbColor( random(CycleMinBrightness, CycleMaxBrightness),
+              random(CycleMinBrightness, CycleMaxBrightness),
+              random(CycleMinBrightness, CycleMaxBrightness));
+          RgbColor targetColor1 = RgbColor::LinearBlend(CycleNewColor, CycleLeftColor, CycleBlend2);  
+          RgbColor targetColor3 = RgbColor::LinearBlend(CycleLeftColor, CycleRightColor, CycleBlend1);  
+          RgbColor targetColor4 = RgbColor::LinearBlend(CycleLeftColor, CycleRightColor, CycleBlend2);  
+       
+          CycleAnimate(targetColor1, CycleLeftColor, targetColor3, targetColor4);
+        }
+        CycleState++;
+        break;
+      case 1:
+        {
+          RgbColor targetColor1 = RgbColor::LinearBlend(CycleNewColor, CycleLeftColor, CycleBlend1);  
+          RgbColor targetColor2 = RgbColor::LinearBlend(CycleNewColor, CycleLeftColor, CycleBlend2);  
+          RgbColor targetColor4 = RgbColor::LinearBlend(CycleLeftColor, CycleRightColor, CycleBlend1);  
+       
+          CycleAnimate(targetColor1, targetColor2, CycleLeftColor, targetColor4);
+        }
+        CycleState++;
+        break;
+      case 2:
+        {
+          RgbColor targetColor2 = RgbColor::LinearBlend(CycleNewColor, CycleLeftColor, CycleBlend1);  
+          RgbColor targetColor3 = RgbColor::LinearBlend(CycleNewColor, CycleLeftColor, CycleBlend2);  
+        
+          CycleAnimate(CycleNewColor, targetColor2, targetColor3, CycleLeftColor);
+        }
+    
+        CycleRightColor = CycleLeftColor;
+        CycleLeftColor = CycleNewColor;
+        CycleState = 0;
+        break;
+    }
   }
-  else if (proximityInRangeReadings == 0)
-  {
-    isProximityDetected = false;
-  }
-  
-  return previousState != isProximityDetected;
+}
+
+void CycleAnimate(RgbColor target1, RgbColor target2, RgbColor target3, RgbColor target4)
+{
+  strip.LinearFadePixelColor(CycleInterval, CyclePixel[0], target4);
+  strip.LinearFadePixelColor(CycleInterval, CyclePixel[1], target3);
+  strip.LinearFadePixelColor(CycleInterval, CyclePixel[2], target2);
+  strip.LinearFadePixelColor(CycleInterval, CyclePixel[3], target1);
 }
