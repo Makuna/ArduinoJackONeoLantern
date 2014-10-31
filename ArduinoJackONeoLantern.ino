@@ -16,8 +16,8 @@ enum RadioActiveState
 #define GlowMinInterval 1000
 #define StabilMaxInterval 2000
 #define StabilMinInterval 500
-const RgbColor RadioActiveLowColor = RgbColor(50,150, 0);
-const RgbColor RadioActiveStabilColor = RgbColor(60,160, 0);
+const RgbColor RadioActiveLowColor = RgbColor(62,114, 0);
+const RgbColor RadioActiveStabilColor = RgbColor(74,136, 0);
 const RgbColor RadioActiveHighColor = RgbColor(124,228, 0);
 const int RadioActivePixel[] = {0, 1, 2, 3}; 
 RadioActiveState radioActiveState = RadioActiveState_Stabil;
@@ -31,7 +31,7 @@ const int CandlePixel[] = {1, 2};
  
 // cycle effect
 #define CycleMinBrightness 35
-#define CycleMaxBrightness 200
+#define CycleMaxBrightness 180
 #define CycleBlend1 85
 #define CycleBlend2 170
 #define CycleInterval 1000
@@ -49,7 +49,7 @@ enum Effect
   Effect_COUNT
 };
 
-#define ChangeEffectTimer (5 * 60 * 1000) // 5 minutes in milliseconds
+const uint32_t ChangeEffectTimer = 240000; // 4 minutes in milliseconds
 
 // Variables
 NeoPixelBus strip = NeoPixelBus(4, 2);
@@ -69,10 +69,12 @@ void setup()
 void loop()
 {
   uint32_t currentTick = millis();
+  uint32_t delta = currentTick - effectChangeTick;
   
-  if (currentTick - effectChangeTick > ChangeEffectTimer)
+  if (delta > ChangeEffectTimer)
   {
     effectChangeTick = currentTick;
+    Serial.println("effect change");
     
     switch (activeEffect)
     {
@@ -87,7 +89,7 @@ void loop()
         break;
     }
     
-    activeEffect = (Effect)random(0, Effect_COUNT);
+    activeEffect = (Effect)(((int)activeEffect + random(1, Effect_COUNT - 1)) % Effect_COUNT);
     
     switch (activeEffect)
     {
