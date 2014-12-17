@@ -12,12 +12,10 @@ TASK_DECLARE_BEGIN(CandleTask)
 
   TASK_DECLARE_FUNCTION OnStart() // optional
   {
-    Serial.println("candle on");
   }
   
   TASK_DECLARE_FUNCTION OnStop() // optional
   {
-    Serial.println("candle off");
     for (int pixel = 0; pixel < CountOf(CandlePixel); pixel++)
     {
       strip.SetPixelColor(CandlePixel[pixel], BlackColor);

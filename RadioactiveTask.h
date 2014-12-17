@@ -1,12 +1,7 @@
 
 
 // radioactive effect 
-enum RadioActiveState
-{
-  RadioActiveState_Stabil,
-  RadioActiveState_Increasing,
-  RadioActiveState_Decreasing
-};
+
 #define GlowMaxInterval 2000
 #define GlowMinInterval 1000
 #define StabilMaxInterval 2000
@@ -15,29 +10,43 @@ const RgbColor RadioActiveLowColor = RgbColor(62,114, 0);
 const RgbColor RadioActiveStabilColor = RgbColor(74,136, 0);
 const RgbColor RadioActiveHighColor = RgbColor(124,228, 0);
 const int RadioActivePixel[] = {0, 1, 2, 3}; 
-RadioActiveState radioActiveState = RadioActiveState_Stabil;
 
-TASK_DECLARE_BEGIN(RadioactiveTask)
-
-  TASK_DECLARE_FUNCTION OnStart() // optional
+class RadioactiveTask : public Task
+{
+public:
+  RadioactiveTask() : 
+    Task(33), // 30 hz
+    radioActiveState(RadioActiveState_Stabil)  
   {
-    Serial.println("radioactive on");
+  }
+
+private:
+  enum RadioActiveState
+  {
+    RadioActiveState_Stabil,
+    RadioActiveState_Increasing,
+    RadioActiveState_Decreasing
+  };
+
+  RadioActiveState radioActiveState;
+
+  virtual void OnStart() // optional
+  {
     for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
     {
       strip.LinearFadePixelColor(10, RadioActivePixel[pixel], RadioActiveLowColor);
     }
   }
   
-  TASK_DECLARE_FUNCTION OnStop() // optional
+  virtual void OnStop() // optional
   {
-    Serial.println("radioactive off");
     for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
     {
       strip.SetPixelColor(RadioActivePixel[pixel], BlackColor);
     }
   }
   
-  TASK_DECLARE_FUNCTION OnUpdate(uint32_t deltaTimeMs)
+  virtual void OnUpdate(uint32_t deltaTimeMs)
   {
     if (strip.IsAnimating())
     {

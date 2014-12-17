@@ -6,83 +6,91 @@
 #define CycleBlend1 85
 #define CycleBlend2 170
 #define CycleInterval 1000
-const int CyclePixel[] = {0, 1, 2, 3};  
-RgbColor CycleLeftColor = RgbColor(0,255,0);
-RgbColor CycleRightColor = RgbColor(255,0,0);
-RgbColor CycleNewColor;
-int CycleState = 0;
+const int CyclePixel[] = {0, 1, 2, 3};
 
-TASK_DECLARE_BEGIN(ColorCycleTask)
-
-  TASK_DECLARE_FUNCTION OnStart() // optional
+class ColorCycleTask : public Task
+{
+public:
+  ColorCycleTask() :
+    Task(33), // 30hz
+    cycleLeftColor(RgbColor(0,255,0)),
+    cycleRightColor(RgbColor(255,0,0)),
+    cycleState(0)
   {
-    Serial.println("cycle on");
+  }
+    
+private:
+  RgbColor cycleLeftColor;
+  RgbColor cycleRightColor;
+  RgbColor cycleNewColor;
+  int cycleState;
+
+  virtual void OnStart() // optional
+  {
     uint8_t blend = CycleBlend1;
     RgbColor color;
   
-    strip.LinearFadePixelColor(10, CyclePixel[0], CycleRightColor);
-    color = RgbColor::LinearBlend(CycleRightColor, CycleLeftColor, blend);
+    strip.LinearFadePixelColor(10, CyclePixel[0], cycleRightColor);
+    color = RgbColor::LinearBlend(cycleRightColor, cycleLeftColor, blend);
     strip.LinearFadePixelColor(10, CyclePixel[1], color);
-    color = RgbColor::LinearBlend(CycleRightColor, CycleLeftColor, CycleBlend2);
+    color = RgbColor::LinearBlend(cycleRightColor, cycleLeftColor, CycleBlend2);
     strip.LinearFadePixelColor(10, CyclePixel[2], color);
-    strip.LinearFadePixelColor(10, CyclePixel[3], CycleLeftColor);
+    strip.LinearFadePixelColor(10, CyclePixel[3], cycleLeftColor);
   }
   
-  TASK_DECLARE_FUNCTION OnStop() // optional
+  virtual void OnStop() // optional
   {
-    Serial.println("cycle off");
     for (int pixel = 0; pixel < CountOf(CyclePixel); pixel++)
     {
       strip.SetPixelColor(CyclePixel[pixel], BlackColor);
     }
   }
   
-  TASK_DECLARE_FUNCTION OnUpdate(uint32_t deltaTimeMs)
+  virtual void OnUpdate(uint32_t deltaTimeMs)
   {
     if (strip.IsAnimating())
     {
       strip.UpdateAnimations();
       strip.Show();
-      delay(31); // ~30hz change cycle
     }
     else
     {
-      switch (CycleState)
+      switch (cycleState)
       {
         case 0:
           {
-            CycleNewColor = RgbColor( random(CycleMinBrightness, CycleMaxBrightness),
+            cycleNewColor = RgbColor( random(CycleMinBrightness, CycleMaxBrightness),
                 random(CycleMinBrightness, CycleMaxBrightness),
                 random(CycleMinBrightness, CycleMaxBrightness));
-            RgbColor targetColor1 = RgbColor::LinearBlend(CycleNewColor, CycleLeftColor, CycleBlend2);  
-            RgbColor targetColor3 = RgbColor::LinearBlend(CycleLeftColor, CycleRightColor, CycleBlend1);  
-            RgbColor targetColor4 = RgbColor::LinearBlend(CycleLeftColor, CycleRightColor, CycleBlend2);  
+            RgbColor targetColor1 = RgbColor::LinearBlend(cycleNewColor, cycleLeftColor, CycleBlend2);  
+            RgbColor targetColor3 = RgbColor::LinearBlend(cycleLeftColor, cycleRightColor, CycleBlend1);  
+            RgbColor targetColor4 = RgbColor::LinearBlend(cycleLeftColor, cycleRightColor, CycleBlend2);  
          
-            CycleAnimate(targetColor1, CycleLeftColor, targetColor3, targetColor4);
+            CycleAnimate(targetColor1, cycleLeftColor, targetColor3, targetColor4);
           }
-          CycleState++;
+          cycleState++;
           break;
         case 1:
           {
-            RgbColor targetColor1 = RgbColor::LinearBlend(CycleNewColor, CycleLeftColor, CycleBlend1);  
-            RgbColor targetColor2 = RgbColor::LinearBlend(CycleNewColor, CycleLeftColor, CycleBlend2);  
-            RgbColor targetColor4 = RgbColor::LinearBlend(CycleLeftColor, CycleRightColor, CycleBlend1);  
+            RgbColor targetColor1 = RgbColor::LinearBlend(cycleNewColor, cycleLeftColor, CycleBlend1);  
+            RgbColor targetColor2 = RgbColor::LinearBlend(cycleNewColor, cycleLeftColor, CycleBlend2);  
+            RgbColor targetColor4 = RgbColor::LinearBlend(cycleLeftColor, cycleRightColor, CycleBlend1);  
          
-            CycleAnimate(targetColor1, targetColor2, CycleLeftColor, targetColor4);
+            CycleAnimate(targetColor1, targetColor2, cycleLeftColor, targetColor4);
           }
-          CycleState++;
+          cycleState++;
           break;
         case 2:
           {
-            RgbColor targetColor2 = RgbColor::LinearBlend(CycleNewColor, CycleLeftColor, CycleBlend1);  
-            RgbColor targetColor3 = RgbColor::LinearBlend(CycleNewColor, CycleLeftColor, CycleBlend2);  
+            RgbColor targetColor2 = RgbColor::LinearBlend(cycleNewColor, cycleLeftColor, CycleBlend1);  
+            RgbColor targetColor3 = RgbColor::LinearBlend(cycleNewColor, cycleLeftColor, CycleBlend2);  
           
-            CycleAnimate(CycleNewColor, targetColor2, targetColor3, CycleLeftColor);
+            CycleAnimate(cycleNewColor, targetColor2, targetColor3, cycleLeftColor);
           }
       
-          CycleRightColor = CycleLeftColor;
-          CycleLeftColor = CycleNewColor;
-          CycleState = 0;
+          cycleRightColor = cycleLeftColor;
+          cycleLeftColor = cycleNewColor;
+          cycleState = 0;
           break;
       }
     }
@@ -96,4 +104,4 @@ TASK_DECLARE_BEGIN(ColorCycleTask)
     strip.LinearFadePixelColor(CycleInterval, CyclePixel[3], target1);
   }
   
-TASK_DECLARE_END  
+};  
