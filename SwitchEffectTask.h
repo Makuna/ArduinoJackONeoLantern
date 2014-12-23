@@ -1,9 +1,4 @@
 
-#define     Effect_First        0
-#define     Effect_Candle       0
-#define     Effect_RadioActive  1
-#define     Effect_Cycle        2
-#define     Effect_COUNT        3
 
 class SwitchEffectTask : public Task
 {
@@ -16,11 +11,22 @@ public:
   }
     
 private:
+  enum Effect
+  {
+    Effect_First,
+    Effect_Candle = 0,
+    Effect_Radioactive,
+    Effect_Cycle,
+    Effect_COUNT
+  };
+  
   int activeEffect;
   Task* pActiveEffectTask;
 
   virtual void OnStart()
   {
+//    Serial.println("new effects on");
+//    Serial.flush();
     int newEffect = random(Effect_First, Effect_COUNT); 
  
     ApplyEffect(newEffect);
@@ -28,14 +34,19 @@ private:
   
   virtual void OnStop()
   {
+//    Serial.println("new effects off");
+//    Serial.flush();
     if (pActiveEffectTask != NULL)
     {
       taskManager.StopTask(pActiveEffectTask);
     }
+    strip.Show(); // force update to the strip
   }
   
   virtual void OnUpdate(uint32_t deltaMs)
   {
+    Serial.println("new effect");
+    Serial.flush();
     // never pick the same one, increment at least by one
     int randomOffset = random(1, Effect_COUNT); 
     // increment and wrap
@@ -57,11 +68,11 @@ private:
       case Effect_Candle:
         pActiveEffectTask = &candleTask;
         break;
-      case Effect_RadioActive:
+      case Effect_Radioactive:
         pActiveEffectTask = &radioactiveTask;
         break;
       case Effect_Cycle:
-        pActiveEffectTask = &colorcycleTask;
+        pActiveEffectTask = &colorCycleTask;
         break;
     }
     

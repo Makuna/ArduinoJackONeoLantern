@@ -4,10 +4,10 @@
 
 #define GlowMaxInterval 2000
 #define GlowMinInterval 1000
-#define StabilMaxInterval 2000
-#define StabilMinInterval 500
+#define StableMaxInterval 2000
+#define StableMinInterval 500
 const RgbColor RadioActiveLowColor = RgbColor(62,114, 0);
-const RgbColor RadioActiveStabilColor = RgbColor(74,136, 0);
+const RgbColor RadioActiveStableColor = RgbColor(74,136, 0);
 const RgbColor RadioActiveHighColor = RgbColor(124,228, 0);
 const int RadioActivePixel[] = {0, 1, 2, 3}; 
 
@@ -16,14 +16,14 @@ class RadioactiveTask : public Task
 public:
   RadioactiveTask() : 
     Task(33), // 30 hz
-    radioActiveState(RadioActiveState_Stabil)  
+    radioActiveState(RadioActiveState_Stable)  
   {
   }
 
 private:
   enum RadioActiveState
   {
-    RadioActiveState_Stabil,
+    RadioActiveState_Stable,
     RadioActiveState_Increasing,
     RadioActiveState_Decreasing
   };
@@ -32,6 +32,8 @@ private:
 
   virtual void OnStart() // optional
   {
+//    Serial.println("radioactive on");
+//    Serial.flush();
     for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
     {
       strip.LinearFadePixelColor(10, RadioActivePixel[pixel], RadioActiveLowColor);
@@ -40,6 +42,8 @@ private:
   
   virtual void OnStop() // optional
   {
+//    Serial.println("radioactive off");
+//    Serial.flush();
     for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
     {
       strip.SetPixelColor(RadioActivePixel[pixel], BlackColor);
@@ -57,50 +61,50 @@ private:
     {
       switch (radioActiveState)
       {
-        case RadioActiveState_Stabil:
+        case RadioActiveState_Increasing:
           // change to increasing
           {
             uint16_t time = random(GlowMinInterval, GlowMaxInterval);
             
-            for (int pixel = 0; pixel <  CountOf(RadioActivePixel); pixel++)
+            for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
             {
-              uint8_t brightness = random(127) + 128;
+              uint8_t brightness = random(127) + 128; // upper range
               RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveHighColor, brightness);
-  
-              strip.LinearFadePixelColor(time, RadioActivePixel[pixel], color);
-            }
-          }
-          radioActiveState = RadioActiveState_Increasing;
-          break;
-        case RadioActiveState_Increasing:
-          // change to decreasing
-          {
-            uint16_t time = random(GlowMinInterval, GlowMaxInterval);
-            
-            for (int pixel = 0; pixel <  CountOf(RadioActivePixel); pixel++)
-            {
-              uint8_t brightness = random(127);
-              RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStabilColor, brightness);
   
               strip.LinearFadePixelColor(time, RadioActivePixel[pixel], color);
             }
           }
           radioActiveState = RadioActiveState_Decreasing;
           break;
+          
         case RadioActiveState_Decreasing:
-          // change to stabil
           {
-            uint16_t time = random(StabilMinInterval, StabilMaxInterval);
+            uint16_t time = random(GlowMinInterval, GlowMaxInterval);
             
-            for (int pixel = 0; pixel <  CountOf(RadioActivePixel); pixel++)
+            for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
             {
-              uint8_t brightness = random(255);
-              RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStabilColor, brightness);
+              uint8_t brightness = random(127); // lower range
+              RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStableColor, brightness);
   
               strip.LinearFadePixelColor(time, RadioActivePixel[pixel], color);
             }
           }
-          radioActiveState = RadioActiveState_Stabil;
+          radioActiveState = RadioActiveState_Stable;
+          break;
+          
+        case RadioActiveState_Stable:
+          {
+            uint16_t time = random(StableMinInterval, StableMaxInterval);
+            
+            for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
+            {
+              uint8_t brightness = random(255); // full range
+              RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStableColor, brightness);
+  
+              strip.LinearFadePixelColor(time, RadioActivePixel[pixel], color);
+            }
+          }
+          radioActiveState = RadioActiveState_Increasing;
           break;
       }
     }
