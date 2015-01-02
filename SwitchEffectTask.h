@@ -46,7 +46,7 @@ private:
   virtual void OnUpdate(uint32_t deltaMs)
   {
     Serial.println("new effect");
-    Serial.flush();
+
     // never pick the same one, increment at least by one
     int randomOffset = random(1, Effect_COUNT); 
     // increment and wrap

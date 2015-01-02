@@ -34,7 +34,7 @@ private:
   {
 //    Serial.println("radioactive on");
 //    Serial.flush();
-    for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
+    for (int pixel = 0; pixel < countof(RadioActivePixel); pixel++)
     {
       strip.LinearFadePixelColor(10, RadioActivePixel[pixel], RadioActiveLowColor);
     }
@@ -44,7 +44,7 @@ private:
   {
 //    Serial.println("radioactive off");
 //    Serial.flush();
-    for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
+    for (int pixel = 0; pixel < countof(RadioActivePixel); pixel++)
     {
       strip.SetPixelColor(RadioActivePixel[pixel], BlackColor);
     }
@@ -66,7 +66,7 @@ private:
           {
             uint16_t time = random(GlowMinInterval, GlowMaxInterval);
             
-            for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
+            for (int pixel = 0; pixel < countof(RadioActivePixel); pixel++)
             {
               uint8_t brightness = random(127) + 128; // upper range
               RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveHighColor, brightness);
@@ -81,7 +81,7 @@ private:
           {
             uint16_t time = random(GlowMinInterval, GlowMaxInterval);
             
-            for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
+            for (int pixel = 0; pixel < countof(RadioActivePixel); pixel++)
             {
               uint8_t brightness = random(127); // lower range
               RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStableColor, brightness);
@@ -96,7 +96,7 @@ private:
           {
             uint16_t time = random(StableMinInterval, StableMaxInterval);
             
-            for (int pixel = 0; pixel < CountOf(RadioActivePixel); pixel++)
+            for (int pixel = 0; pixel < countof(RadioActivePixel); pixel++)
             {
               uint8_t brightness = random(255); // full range
               RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStableColor, brightness);

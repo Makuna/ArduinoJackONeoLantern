@@ -20,7 +20,7 @@ TASK_DECLARE_BEGIN(CandleTask)
   {
 //    Serial.println("candle off");
 //    Serial.flush();
-    for (int pixel = 0; pixel < CountOf(CandlePixel); pixel++)
+    for (int pixel = 0; pixel < countof(CandlePixel); pixel++)
     {
       strip.SetPixelColor(CandlePixel[pixel], BlackColor);
     }
@@ -39,7 +39,7 @@ TASK_DECLARE_BEGIN(CandleTask)
       uint8_t brightness = random(256);
       RgbColor color = RgbColor::LinearBlend(DimCandleColor, BrightCandleColor, brightness);
   
-      for (int pixel = 0; pixel <  CountOf(CandlePixel); pixel++)
+      for (int pixel = 0; pixel <  countof(CandlePixel); pixel++)
       {
         strip.LinearFadePixelColor(time, CandlePixel[pixel], color);
       }

@@ -30,7 +30,7 @@ private:
   {
 //    Serial.println("cycle off");
 //    Serial.flush();
-    for (int pixel = 0; pixel < CountOf(CyclePixel); pixel++)
+    for (int pixel = 0; pixel < countof(CyclePixel); pixel++)
     {
       strip.SetPixelColor(CyclePixel[pixel], BlackColor);
     }
