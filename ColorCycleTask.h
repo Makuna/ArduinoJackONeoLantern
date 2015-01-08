@@ -10,7 +10,7 @@ class ColorCycleTask : public Task
 {
 public:
   ColorCycleTask() :
-    Task(33), // 30hz
+      Task(MsToTaskTime(33)), // 30hz
     cycleColor(BlackColor),
     cycleState(0)
   {
@@ -36,7 +36,7 @@ private:
     }
   }
   
-  virtual void OnUpdate(uint32_t deltaTimeMs)
+  virtual void OnUpdate(uint32_t deltaTime)
   {
     if (strip.IsAnimating())
     {

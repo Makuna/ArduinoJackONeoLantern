@@ -1,6 +1,7 @@
 #include <NeoPixelBus.h>
 #include <Task.h>
 #include <RandomSeed.h>
+#include <avr/power.h>
 
 // delcare taskManager
 TaskManager taskManager;
@@ -31,22 +32,29 @@ RadioactiveTask radioactiveTask;
 #include "SwitchEffectTask.h"
 
 // declare switch task and running and stopping timers
-SwitchEffectTask switchEffectTask(240000); // 240000 ms = 4 minutes
-FunctionTask runningTimer(SwitchToSleep, 18000000); // 18000000 ms = 5 hours
-FunctionTask sleepingTimer(SwitchToRunning, 68400000); // 68400000 ms = 19 hours
+SwitchEffectTask switchEffectTask(MsToTaskTime(240000)); // 240000 ms = 4 minutes
+FunctionTask runningTimer(SwitchToSleep, MsToTaskTime(18000000)); // 18000000 ms = 5 hours
+FunctionTask sleepingTimer(SwitchToRunning, MsToTaskTime(68400000)); // 68400000 ms = 19 hours
 
 // Functions
 
 void setup()
 {
-  Serial.begin(38400);
+  Serial.begin(57600);
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);    
 
   strip.Begin();
   strip.Show(); 
 
+  // must be done before the power saving tricks below
   randomSeed(GenerateRandomSeed());
+
+  // power saving tricks
+  ADCSRA = 0; // disable ADC
+  power_all_disable();
+  power_timer0_enable(); // used for millis()
+  power_usart0_enable(); // used for Serial
 
   SwitchToRunning(0);
 }
@@ -56,7 +64,7 @@ void loop()
   taskManager.Loop();
 }
 
-void SwitchToSleep(uint32_t deltaTimeMs)
+void SwitchToSleep(uint32_t deltaTime)
 {
   Serial.println("going to sleep");
   Serial.flush();
@@ -66,7 +74,7 @@ void SwitchToSleep(uint32_t deltaTimeMs)
   taskManager.StartTask(&sleepingTimer);
 }
 
-void SwitchToRunning(uint32_t deltaTimeMs)
+void SwitchToRunning(uint32_t deltaTime)
 {
   Serial.println("waking up");
   Serial.flush();

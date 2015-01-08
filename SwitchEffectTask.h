@@ -3,8 +3,8 @@
 class SwitchEffectTask : public Task
 {
 public:
-  SwitchEffectTask(uint32_t intervalMs) :
-    Task(intervalMs),
+  SwitchEffectTask(uint32_t interval) :
+      Task(interval),
     activeEffect(Effect_First), 
     pActiveEffectTask(NULL)
   {
@@ -43,7 +43,7 @@ private:
     strip.Show(); // force update to the strip
   }
   
-  virtual void OnUpdate(uint32_t deltaMs)
+  virtual void OnUpdate(uint32_t delta)
   {
     Serial.println("new effect");
 

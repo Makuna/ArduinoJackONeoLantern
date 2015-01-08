@@ -26,7 +26,7 @@ TASK_DECLARE_BEGIN(CandleTask)
     }
   }
   
-  TASK_DECLARE_FUNCTION OnUpdate(uint32_t deltaTimeMs)
+  TASK_DECLARE_FUNCTION OnUpdate(uint32_t deltaTime)
   {
     if (strip.IsAnimating())
     {

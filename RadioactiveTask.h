@@ -15,7 +15,7 @@ class RadioactiveTask : public Task
 {
 public:
   RadioactiveTask() : 
-    Task(33), // 30 hz
+      Task(MsToTaskTime(33)), // 30 hz
     radioActiveState(RadioActiveState_Stable)  
   {
   }
@@ -50,7 +50,7 @@ private:
     }
   }
   
-  virtual void OnUpdate(uint32_t deltaTimeMs)
+  virtual void OnUpdate(uint32_t deltaTime)
   {
     if (strip.IsAnimating())
     {
