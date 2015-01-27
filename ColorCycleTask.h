@@ -20,10 +20,11 @@ private:
   RgbColor cycleColor;
   int cycleState;
 
-  virtual void OnStart() // optional
+  virtual bool OnStart() // optional
   {
 //    Serial.println("cycle on");
 //    Serial.flush();
+      return true;
   }
   
   virtual void OnStop() // optional

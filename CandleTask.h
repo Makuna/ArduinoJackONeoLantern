@@ -10,13 +10,13 @@ const int CandlePixel[] = {0, 3};
 
 TASK_DECLARE_BEGIN(CandleTask)
 
-  TASK_DECLARE_FUNCTION OnStart() // optional
+TASK_DECLARE_START  // optional
   {
 //    Serial.println("candle on");
 //    Serial.flush();
   }
   
-  TASK_DECLARE_FUNCTION OnStop() // optional
+TASK_DECLARE_STOP  // optional
   {
 //    Serial.println("candle off");
 //    Serial.flush();
@@ -26,7 +26,7 @@ TASK_DECLARE_BEGIN(CandleTask)
     }
   }
   
-  TASK_DECLARE_FUNCTION OnUpdate(uint32_t deltaTime)
+TASK_DECLARE_UPDATE 
   {
     if (strip.IsAnimating())
     {

@@ -23,13 +23,14 @@ private:
   int activeEffect;
   Task* pActiveEffectTask;
 
-  virtual void OnStart()
+  virtual bool OnStart()
   {
 //    Serial.println("new effects on");
 //    Serial.flush();
     int newEffect = random(Effect_First, Effect_COUNT); 
  
     ApplyEffect(newEffect);
+    return true;
   }
   
   virtual void OnStop()

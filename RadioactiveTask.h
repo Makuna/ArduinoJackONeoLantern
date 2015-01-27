@@ -30,7 +30,7 @@ private:
 
   RadioActiveState radioActiveState;
 
-  virtual void OnStart() // optional
+  virtual bool OnStart() // optional
   {
 //    Serial.println("radioactive on");
 //    Serial.flush();
@@ -38,6 +38,7 @@ private:
     {
       strip.LinearFadePixelColor(10, RadioActivePixel[pixel], RadioActiveLowColor);
     }
+    return true;
   }
   
   virtual void OnStop() // optional

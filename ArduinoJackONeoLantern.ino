@@ -40,7 +40,7 @@ FunctionTask sleepingTimer(SwitchToRunning, MsToTaskTime(68400000)); // 68400000
 
 void setup()
 {
-  Serial.begin(57600);
+  Serial.begin(115200);
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);    
 
