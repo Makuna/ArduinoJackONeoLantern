@@ -1,3 +1,15 @@
+#visual micro files
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+[Vv]isual [Mm]icro/
+[Rr]elease/
+[Dd]ebug/
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
@@ -26,7 +38,8 @@ $RECYCLE.BIN/
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*

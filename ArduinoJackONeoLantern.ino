@@ -1,163 +1,88 @@
 #include <NeoPixelBus.h>
- 
-#define CountOf(a) (sizeof(a) / sizeof(a[0]))
+#include <Task.h>
+#include <RandomSeed.h>
+#include <avr/power.h>
+
+// delcare taskManager
+TaskManager taskManager;
+
+// handy macro that calculates the count of elements in an array
+#define countof(a) (sizeof(a) / sizeof(a[0]))
+
+// Pin 13 has an LED connected on most Arduino boards.
+#define ledPin 13
 
 // general constants
 const RgbColor BlackColor = RgbColor(0,0,0);
 
-// proximity sensor constants
-#define ProximitySensorAnalogIndex 0 // note:  This is specifically the analog index, not physical pin
-#define ProximityThreshold 85 // larger is closer, 65-512 usable ranges
-#define ProximityConsecutiveReadings 8 // number of readings at thresholds before changing proximity state
- 
-// proximity effect constants
-const RgbColor ProximityColor = RgbColor(128,0, 0);
-const int EffectPixel[] = {0, 1, 2, 3}; 
+// global variables
+NeoPixelBus strip = NeoPixelBus(4, 2 /*, NEO_RGB */); // four pixels on pin 2
 
- 
-// candle effect constants
-#define CandleFlickerMaxInterval 400
-#define CandleFlickerMinInterval 100
-const RgbColor DimCandleColor = RgbColor(16, 0, 0);
-const RgbColor BrightCandleColor = RgbColor(92, 64, 8);
-const int CandlePixel[] = {1, 2}; 
- 
-// proximity sensor variables
-int proximityInRangeReadings = 0;
-bool isProximityDetected = false;
- 
-// candle effect variables 
-NeoPixelBus strip = NeoPixelBus(4, 2);
+// include effect task definitions
+#include "CandleTask.h"
+#include "ColorCycleTask.h"
+#include "RadioactiveTask.h"
+
+// declare effect tasks
+CandleTask candleTask(33);
+ColorCycleTask colorCycleTask;
+RadioactiveTask radioactiveTask;
+
+// include effect switching task definitions
+#include "SwitchEffectTask.h"
+
+// declare switch task and running and stopping timers
+SwitchEffectTask switchEffectTask(MsToTaskTime(240000)); // 240000 ms = 4 minutes
+FunctionTask runningTimer(SwitchToSleep, MsToTaskTime(18000000)); // 18000000 ms = 5 hours
+FunctionTask sleepingTimer(SwitchToRunning, MsToTaskTime(68400000)); // 68400000 ms = 19 hours
+
+// Functions
 
 void setup()
 {
+  Serial.begin(115200);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);    
+
   strip.Begin();
   strip.Show(); 
-  randomSeed(analogRead(2));
-  Serial.begin(9600);
+
+  // must be done before the power saving tricks below
+  randomSeed(GenerateRandomSeed());
+
+  // power saving tricks
+  ADCSRA = 0; // disable ADC
+  power_all_disable();
+  power_timer0_enable(); // used for millis()
+  power_usart0_enable(); // used for Serial
+
+  SwitchToRunning(0);
 }
  
 void loop()
 {
-//  if (UpdateProximityDetection())
-//  {
-//    if (isProximityDetected)
-//    {
-//     TurnOffCandleEffect();
-//      TurnOnProximityEffect();
-//    }
-//    else
-//    {
-//      TurnOffProximityEffect();
-//      TurnOnCandleEffect();
-//    }
-//  }
-
-  if (isProximityDetected)
-  {
-    UpdateProximityEffect();
-  }
-  else
-  {
-    UpdateCandleEffect();
-  }
-
-}
- 
-void TurnOffCandleEffect()
-{
-  Serial.println("candle off");
-  for (int pixel = 0; pixel < CountOf(CandlePixel); pixel++)
-  {
-    strip.SetPixelColor(CandlePixel[pixel], BlackColor);
-  }
-}
- 
-void TurnOnCandleEffect()
-{
-  Serial.println("candle on");
+  taskManager.Loop();
 }
 
-void UpdateCandleEffect()
+void SwitchToSleep(uint32_t deltaTime)
 {
-  if (strip.IsAnimating())
-  {
-    strip.UpdateAnimations();
-    strip.Show();
-    delay(31); // ~30hz change cycle
-  }
-  else
-  {
-    uint16_t time = random(CandleFlickerMinInterval, CandleFlickerMaxInterval);
-    uint8_t brightness = random(256);
-    RgbColor color = RgbColor::LinearBlend(DimCandleColor, BrightCandleColor, brightness);
+  Serial.println("going to sleep");
+  Serial.flush();
 
-    for (int pixel = 0; pixel <  CountOf(CandlePixel); pixel++)
-    {
-      strip.LinearFadePixelColor(time, CandlePixel[pixel], color);
-    }
-  }
-}
- 
-void TurnOffProximityEffect()
-{
-  Serial.println("proximity off");
-  for (int pixel = 0; pixel < CountOf(EffectPixel); pixel++)
-  {
-    strip.SetPixelColor(EffectPixel[pixel], BlackColor);
-  }
-}
- 
-void TurnOnProximityEffect()
-{
-  Serial.println("proximity on");
-  for (int pixel = 0; pixel < CountOf(EffectPixel); pixel++)
-  {
-    strip.LinearFadePixelColor(10, EffectPixel[pixel], ProximityColor);
-  }
-}
- 
-void UpdateProximityEffect()
-{
-  if (strip.IsAnimating())
-  {
-    strip.UpdateAnimations();
-    strip.Show();
-    delay(31); // ~30hz change cycle
-  }
+  taskManager.StopTask(&runningTimer);
+  taskManager.StopTask(&switchEffectTask);
+  taskManager.StartTask(&sleepingTimer);
 }
 
-bool UpdateProximityDetection()
+void SwitchToRunning(uint32_t deltaTime)
 {
-  int proximity = analogRead(ProximitySensorAnalogIndex);
-  bool previousState = isProximityDetected;
-  
-  // leakey bucket implementation for state change
-  // this provides a debounce filter
-  //
-  
-  // update count of in range readings
-  if (proximity > ProximityThreshold)
-  {
-    // fill to limit
-    proximityInRangeReadings = min(ProximityConsecutiveReadings, proximityInRangeReadings + 1);
-  }
-  else if (proximityInRangeReadings > 0)
-  {
-    // leak
-    proximityInRangeReadings--;
-  }
-  
-  // test thresholds and set state only if thresholds are reached
-  // otherwise leave the state alone
-  if (proximityInRangeReadings == ProximityConsecutiveReadings)
-  {
-    isProximityDetected = true;
-  }
-  else if (proximityInRangeReadings == 0)
-  {
-    isProximityDetected = false;
-  }
-  
-  return previousState != isProximityDetected;
+  Serial.println("waking up");
+  Serial.flush();
+
+  taskManager.StopTask(&sleepingTimer);
+  taskManager.StartTask(&runningTimer);
+  taskManager.StartTask(&switchEffectTask);
 }
+ 
+
+
