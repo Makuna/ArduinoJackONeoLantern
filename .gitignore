@@ -6,9 +6,9 @@
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
-Visual Micro/
-Release/
-Debug/
+[Vv]isual [Mm]icro/
+[Rr]elease/
+[Dd]ebug/
 
 # Windows image file caches
 Thumbs.db
