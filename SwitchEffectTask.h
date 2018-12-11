@@ -20,14 +20,14 @@ private:
     Effect_COUNT
   };
   
-  int activeEffect;
+  uint16_t activeEffect;
   Task* pActiveEffectTask;
 
   virtual bool OnStart()
   {
 //    Serial.println("new effects on");
 //    Serial.flush();
-    int newEffect = random(Effect_First, Effect_COUNT); 
+    uint16_t newEffect = random(Effect_First, Effect_COUNT); 
  
     ApplyEffect(newEffect);
     return true;
@@ -49,14 +49,14 @@ private:
     Serial.println("new effect");
 
     // never pick the same one, increment at least by one
-    int randomOffset = random(1, Effect_COUNT); 
+    uint16_t randomOffset = random(1, Effect_COUNT); 
     // increment and wrap
-    int newEffect = (activeEffect + randomOffset) % Effect_COUNT; 
+    uint16_t newEffect = (activeEffect + randomOffset) % Effect_COUNT; 
  
     ApplyEffect(newEffect);
   }
   
-  void ApplyEffect(int newEffect)
+  void ApplyEffect(uint16_t newEffect)
   {
     if (pActiveEffectTask != NULL)
     {
@@ -81,8 +81,6 @@ private:
     {
       taskManager.StartTask(pActiveEffectTask);
     }
-    
-    strip.StartAnimating();
   }
 };
 
