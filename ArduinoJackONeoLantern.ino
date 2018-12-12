@@ -7,8 +7,9 @@
 // define state for animation handling
 struct MyAnimationState
 {
-    RgbwColor StartingColor;
-    RgbwColor EndingColor;
+    RgbColor StartingColor;
+    RgbColor EndingColor;
+    bool IsGettingBrighter;
 };
 
 // declare taskManager
@@ -21,11 +22,11 @@ TaskManager taskManager;
 
 // general constants
 const RgbColor BlackColor = RgbColor(0,0,0);
-const uint16_t PixelCount = 1; // make sure to set this to the number of pixels in your strip
+const uint16_t PixelCount = 4; // make sure to set this to the number of pixels in your strip
 const uint8_t PixelPin = 9;  // make sure to set this to the correct pin, ignored for Esp8266
 
 // global variables
-NeoPixelBus<NeoGrbwFeature, Neo800KbpsMethod> strip(PixelCount, PixelPin); 
+NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(PixelCount, PixelPin); 
 NeoPixelAnimator animations(PixelCount);
 MyAnimationState animationState[PixelCount];
 
@@ -41,13 +42,14 @@ RadioactiveTask radioactiveTask;
 
 // include effect switching task definitions
 #include "SwitchEffectTask.h"
+const uint8_t EffectSet = EffectFlag_All; // or effects that you want like AsFlag(Effect_Candle) | AsFlag(Effect_Cycle); 
 
 // foreward declare timer functions so they can be referenced before they are defined
 void SwitchToRunning(uint32_t deltaTime);
 void SwitchToSleep(uint32_t deltaTime);
 
 // declare switch task and running and stopping timers
-SwitchEffectTask switchEffectTask(MsToTaskTime(240000)); // 240000 ms = 4 minutes
+SwitchEffectTask switchEffectTask(MsToTaskTime(240000), EffectSet); // 240000 ms = 4 minutes
 FunctionTask runningTimer(SwitchToSleep, MsToTaskTime(18000000)); // 18000000 ms = 5 hours
 FunctionTask sleepingTimer(SwitchToRunning, MsToTaskTime(68400000)); // 68400000 ms = 19 hours
 

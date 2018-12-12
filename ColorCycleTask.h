@@ -10,13 +10,17 @@ const uint16_t CyclePixel[] = {0, 1, 2, 3};
 void CycleAnimUpdate(const AnimationParam& param)
 {
     // this gets called for each animation on every time step
-    // progress will start at 0.0 and end at 1.0
+    // param.progress will start at 0.0 and end at 1.0
+    float progress;
+    // apply curve
+    progress = NeoEase::CubicInOut(param.progress);
+
     // we use the blend function on the RgbColor to mix
-    // color based on the progress given to us in the animation
-    RgbwColor updatedColor = RgbwColor::LinearBlend(
+    // color based on the modified progress 
+    RgbColor updatedColor = RgbColor::LinearBlend(
         animationState[param.index].StartingColor,
         animationState[param.index].EndingColor,
-        param.progress);
+        progress);
     // apply the color to the strip
     strip.SetPixelColor(param.index, updatedColor);
 }
@@ -26,19 +30,19 @@ class ColorCycleTask : public Task
 public:
   ColorCycleTask() :
       Task(MsToTaskTime(33)), // 30hz
-    cycleColor(BlackColor),
-    cycleState(0)
+    _cycleColor(BlackColor),
+    _cycleState(0)
   {
   }
     
 private:
-  RgbwColor cycleColor;
-  uint16_t cycleState;
+  RgbColor _cycleColor;
+  uint16_t _cycleState;
 
   virtual bool OnStart() // optional
   {
-//    Serial.println("cycle on");
-//    Serial.flush();
+    Serial.println("cycle on");
+    Serial.flush();
       return true;
   }
   
@@ -61,40 +65,40 @@ private:
     }
     else
     {
-      switch (cycleState)
+      switch (_cycleState)
       {
         case 0:
-          cycleColor = RgbColor( random(CycleMinBrightness, CycleMaxBrightness),
+          _cycleColor = RgbColor( random(CycleMinBrightness, CycleMaxBrightness),
                 random(CycleMinBrightness, CycleMaxBrightness),
                 random(CycleMinBrightness, CycleMaxBrightness));
                 
-          BlendCyclePixelToColor(0, cycleColor);
+          BlendCyclePixelToColor(0, _cycleColor);
           BlendCyclePixelToColor(3, BlackColor);
-          cycleState++;
+          _cycleState++;
           break;
           
         case 1:
-          BlendCyclePixelToColor(1, cycleColor);
+          BlendCyclePixelToColor(1, _cycleColor);
           BlendCyclePixelToColor(0, BlackColor);
-          cycleState++;
+          _cycleState++;
           break;
           
         case 2:
-          BlendCyclePixelToColor(2, cycleColor);
+          BlendCyclePixelToColor(2, _cycleColor);
           BlendCyclePixelToColor(1, BlackColor);
-          cycleState++;
+          _cycleState++;
           break;
           
         case 3:
-          BlendCyclePixelToColor(3, cycleColor);
+          BlendCyclePixelToColor(3, _cycleColor);
           BlendCyclePixelToColor(2, BlackColor);
-          cycleState = 0; // repeat
+          _cycleState = 0; // repeat
           break;
       }
     }
   }
 
-  void BlendCyclePixelToColor(uint16_t cyclePixel, RgbwColor color)
+  void BlendCyclePixelToColor(uint16_t cyclePixel, RgbColor color)
   {
       uint16_t pixel = CyclePixel[cyclePixel];
       animationState[pixel].StartingColor = strip.GetPixelColor(pixel);

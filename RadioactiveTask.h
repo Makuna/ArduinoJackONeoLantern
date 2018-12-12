@@ -18,7 +18,7 @@ void RadioactiveAnimUpdate(const AnimationParam& param)
     // progress will start at 0.0 and end at 1.0
     // we use the blend function on the RgbColor to mix
     // color based on the progress given to us in the animation
-    RgbwColor updatedColor = RgbwColor::LinearBlend(
+    RgbColor updatedColor = RgbColor::LinearBlend(
         animationState[param.index].StartingColor,
         animationState[param.index].EndingColor,
         param.progress);
@@ -31,7 +31,7 @@ class RadioactiveTask : public Task
 public:
     RadioactiveTask() :
         Task(MsToTaskTime(33)), // 30 hz
-        radioActiveState(RadioActiveState_Stable)
+        _radioActiveState(RadioActiveState_Stable)
     {
     }
 
@@ -43,12 +43,13 @@ private:
         RadioActiveState_Decreasing
     };
 
-    RadioActiveState radioActiveState;
+    RadioActiveState _radioActiveState;
 
     virtual bool OnStart() // optional
     {
-        //    Serial.println("radioactive on");
-        //    Serial.flush();
+        Serial.println("radioactive on");
+        Serial.flush();
+
         for (uint16_t radioPixel = 0; radioPixel < countof(RadioActivePixel); radioPixel++)
         {
             uint16_t pixel = RadioActivePixel[radioPixel];
@@ -78,7 +79,7 @@ private:
         }
         else
         {
-            switch (radioActiveState)
+            switch (_radioActiveState)
             {
             case RadioActiveState_Increasing:
                 // change to increasing
@@ -96,7 +97,7 @@ private:
                     animations.StartAnimation(pixel, time, RadioactiveAnimUpdate);
                 }
             }
-            radioActiveState = RadioActiveState_Decreasing;
+            _radioActiveState = RadioActiveState_Decreasing;
             break;
 
             case RadioActiveState_Decreasing:
@@ -114,7 +115,7 @@ private:
                     animations.StartAnimation(pixel, time, RadioactiveAnimUpdate);
                 }
             }
-            radioActiveState = RadioActiveState_Stable;
+            _radioActiveState = RadioActiveState_Stable;
             break;
 
             case RadioActiveState_Stable:
@@ -123,7 +124,7 @@ private:
 
                 for (uint16_t radioPixel = 0; radioPixel < countof(RadioActivePixel); radioPixel++)
                 {
-                    uint8_t brightness = random(255); // full range
+                    uint8_t brightness = random(256); // full range
                     RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStableColor, brightness/255.0f);
 
                     uint16_t pixel = RadioActivePixel[radioPixel];
@@ -132,7 +133,7 @@ private:
                     animations.StartAnimation(pixel, time, RadioactiveAnimUpdate);
                 }
             }
-            radioActiveState = RadioActiveState_Increasing;
+            _radioActiveState = RadioActiveState_Increasing;
             break;
             }
         }
