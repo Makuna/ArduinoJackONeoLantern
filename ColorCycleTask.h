@@ -4,26 +4,45 @@
 #define CycleMinBrightness 5
 #define CycleMaxBrightness 192
 #define CycleInterval 1500
-const int CyclePixel[] = {0, 1, 2, 3};
+const uint16_t CyclePixel[] = {0, 1, 2, 3};
+
+// simple blend function
+void CycleAnimUpdate(const AnimationParam& param)
+{
+    // this gets called for each animation on every time step
+    // param.progress will start at 0.0 and end at 1.0
+    float progress;
+    // apply curve
+    progress = NeoEase::CubicInOut(param.progress);
+
+    // we use the blend function on the RgbColor to mix
+    // color based on the modified progress 
+    RgbColor updatedColor = RgbColor::LinearBlend(
+        animationState[param.index].StartingColor,
+        animationState[param.index].EndingColor,
+        progress);
+    // apply the color to the strip
+    strip.SetPixelColor(param.index, updatedColor);
+}
 
 class ColorCycleTask : public Task
 {
 public:
   ColorCycleTask() :
       Task(MsToTaskTime(33)), // 30hz
-    cycleColor(BlackColor),
-    cycleState(0)
+    _cycleColor(BlackColor),
+    _cycleState(0)
   {
   }
     
 private:
-  RgbColor cycleColor;
-  int cycleState;
+  RgbColor _cycleColor;
+  uint16_t _cycleState;
 
   virtual bool OnStart() // optional
   {
-//    Serial.println("cycle on");
-//    Serial.flush();
+    Serial.println("cycle on");
+    Serial.flush();
       return true;
   }
   
@@ -31,7 +50,7 @@ private:
   {
 //    Serial.println("cycle off");
 //    Serial.flush();
-    for (int pixel = 0; pixel < countof(CyclePixel); pixel++)
+    for (uint16_t pixel = 0; pixel < countof(CyclePixel); pixel++)
     {
       strip.SetPixelColor(CyclePixel[pixel], BlackColor);
     }
@@ -39,46 +58,52 @@ private:
   
   virtual void OnUpdate(uint32_t deltaTime)
   {
-    if (strip.IsAnimating())
+    if (animations.IsAnimating())
     {
-      strip.UpdateAnimations();
+      animations.UpdateAnimations();
       strip.Show();
     }
     else
     {
-      switch (cycleState)
+      switch (_cycleState)
       {
         case 0:
-          cycleColor = RgbColor( random(CycleMinBrightness, CycleMaxBrightness),
+          _cycleColor = RgbColor( random(CycleMinBrightness, CycleMaxBrightness),
                 random(CycleMinBrightness, CycleMaxBrightness),
                 random(CycleMinBrightness, CycleMaxBrightness));
                 
-          strip.LinearFadePixelColor(CycleInterval, CyclePixel[0], cycleColor);    
-          strip.LinearFadePixelColor(CycleInterval, CyclePixel[3], BlackColor);    
-
-          cycleState++;
+          BlendCyclePixelToColor(0, _cycleColor);
+          BlendCyclePixelToColor(3, BlackColor);
+          _cycleState++;
           break;
           
         case 1:
-          strip.LinearFadePixelColor(CycleInterval, CyclePixel[1], cycleColor);    
-          strip.LinearFadePixelColor(CycleInterval, CyclePixel[0], BlackColor);    
-
-          cycleState++;
+          BlendCyclePixelToColor(1, _cycleColor);
+          BlendCyclePixelToColor(0, BlackColor);
+          _cycleState++;
           break;
           
         case 2:
-          strip.LinearFadePixelColor(CycleInterval, CyclePixel[2], cycleColor);    
-          strip.LinearFadePixelColor(CycleInterval, CyclePixel[1], BlackColor); 
-          cycleState++;
+          BlendCyclePixelToColor(2, _cycleColor);
+          BlendCyclePixelToColor(1, BlackColor);
+          _cycleState++;
           break;
           
         case 3:
-          strip.LinearFadePixelColor(CycleInterval, CyclePixel[3], cycleColor);    
-          strip.LinearFadePixelColor(CycleInterval, CyclePixel[2], BlackColor); 
-          cycleState = 0; // repeat
+          BlendCyclePixelToColor(3, _cycleColor);
+          BlendCyclePixelToColor(2, BlackColor);
+          _cycleState = 0; // repeat
           break;
       }
     }
+  }
+
+  void BlendCyclePixelToColor(uint16_t cyclePixel, RgbColor color)
+  {
+      uint16_t pixel = CyclePixel[cyclePixel];
+      animationState[pixel].StartingColor = strip.GetPixelColor(pixel);
+      animationState[pixel].EndingColor = color;
+      animations.StartAnimation(pixel, CycleInterval, CycleAnimUpdate);
   }
  
 };  

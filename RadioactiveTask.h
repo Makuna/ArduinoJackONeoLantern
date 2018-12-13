@@ -9,14 +9,29 @@
 const RgbColor RadioActiveLowColor = RgbColor(62,114, 0);
 const RgbColor RadioActiveStableColor = RgbColor(74,136, 0);
 const RgbColor RadioActiveHighColor = RgbColor(124,228, 0);
-const int RadioActivePixel[] = {0, 1, 2, 3}; 
+const uint16_t RadioActivePixel[] = {0, 1, 2, 3}; 
+
+// simple blend function
+void RadioactiveAnimUpdate(const AnimationParam& param)
+{
+    // this gets called for each animation on every time step
+    // progress will start at 0.0 and end at 1.0
+    // we use the blend function on the RgbColor to mix
+    // color based on the progress given to us in the animation
+    RgbColor updatedColor = RgbColor::LinearBlend(
+        animationState[param.index].StartingColor,
+        animationState[param.index].EndingColor,
+        param.progress);
+    // apply the color to the strip
+    strip.SetPixelColor(param.index, updatedColor);
+}
 
 class RadioactiveTask : public Task
 {
 public:
     RadioactiveTask() :
         Task(MsToTaskTime(33)), // 30 hz
-        radioActiveState(RadioActiveState_Stable)
+        _radioActiveState(RadioActiveState_Stable)
     {
     }
 
@@ -28,15 +43,19 @@ private:
         RadioActiveState_Decreasing
     };
 
-    RadioActiveState radioActiveState;
+    RadioActiveState _radioActiveState;
 
     virtual bool OnStart() // optional
     {
-        //    Serial.println("radioactive on");
-        //    Serial.flush();
-        for (int pixel = 0; pixel < countof(RadioActivePixel); pixel++)
+        Serial.println("radioactive on");
+        Serial.flush();
+
+        for (uint16_t radioPixel = 0; radioPixel < countof(RadioActivePixel); radioPixel++)
         {
-            strip.LinearFadePixelColor(10, RadioActivePixel[pixel], RadioActiveLowColor);
+            uint16_t pixel = RadioActivePixel[radioPixel];
+            animationState[pixel].StartingColor = BlackColor;
+            animationState[pixel].EndingColor = RadioActiveLowColor;
+            animations.StartAnimation(pixel, 10, RadioactiveAnimUpdate);
         }
         return true;
     }
@@ -45,7 +64,7 @@ private:
     {
         //    Serial.println("radioactive off");
         //    Serial.flush();
-        for (int pixel = 0; pixel < countof(RadioActivePixel); pixel++)
+        for (uint16_t pixel = 0; pixel < countof(RadioActivePixel); pixel++)
         {
             strip.SetPixelColor(RadioActivePixel[pixel], BlackColor);
         }
@@ -53,59 +72,68 @@ private:
 
     virtual void OnUpdate(uint32_t deltaTime)
     {
-        if (strip.IsAnimating())
+        if (animations.IsAnimating())
         {
-            strip.UpdateAnimations();
+            animations.UpdateAnimations();
             strip.Show();
         }
         else
         {
-            switch (radioActiveState)
+            switch (_radioActiveState)
             {
             case RadioActiveState_Increasing:
                 // change to increasing
             {
                 uint16_t time = random(GlowMinInterval, GlowMaxInterval);
 
-                for (int pixel = 0; pixel < countof(RadioActivePixel); pixel++)
+                for (uint16_t radioPixel = 0; radioPixel < countof(RadioActivePixel); radioPixel++)
                 {
                     uint8_t brightness = random(127) + 128; // upper range
-                    RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveHighColor, brightness);
+                    RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveHighColor, brightness/255.0f);
 
-                    strip.LinearFadePixelColor(time, RadioActivePixel[pixel], color);
+                    uint16_t pixel = RadioActivePixel[radioPixel];
+                    animationState[pixel].StartingColor = strip.GetPixelColor(pixel);
+                    animationState[pixel].EndingColor = color;
+                    animations.StartAnimation(pixel, time, RadioactiveAnimUpdate);
                 }
             }
-            radioActiveState = RadioActiveState_Decreasing;
+            _radioActiveState = RadioActiveState_Decreasing;
             break;
 
             case RadioActiveState_Decreasing:
             {
                 uint16_t time = random(GlowMinInterval, GlowMaxInterval);
 
-                for (int pixel = 0; pixel < countof(RadioActivePixel); pixel++)
+                for (uint16_t radioPixel = 0; radioPixel < countof(RadioActivePixel); radioPixel++)
                 {
                     uint8_t brightness = random(127); // lower range
-                    RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStableColor, brightness);
+                    RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStableColor, brightness/255.0f);
 
-                    strip.LinearFadePixelColor(time, RadioActivePixel[pixel], color);
+                    uint16_t pixel = RadioActivePixel[radioPixel];
+                    animationState[pixel].StartingColor = strip.GetPixelColor(pixel);
+                    animationState[pixel].EndingColor = color;
+                    animations.StartAnimation(pixel, time, RadioactiveAnimUpdate);
                 }
             }
-            radioActiveState = RadioActiveState_Stable;
+            _radioActiveState = RadioActiveState_Stable;
             break;
 
             case RadioActiveState_Stable:
             {
                 uint16_t time = random(StableMinInterval, StableMaxInterval);
 
-                for (int pixel = 0; pixel < countof(RadioActivePixel); pixel++)
+                for (uint16_t radioPixel = 0; radioPixel < countof(RadioActivePixel); radioPixel++)
                 {
-                    uint8_t brightness = random(255); // full range
-                    RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStableColor, brightness);
+                    uint8_t brightness = random(256); // full range
+                    RgbColor color = RgbColor::LinearBlend(RadioActiveLowColor, RadioActiveStableColor, brightness/255.0f);
 
-                    strip.LinearFadePixelColor(time, RadioActivePixel[pixel], color);
+                    uint16_t pixel = RadioActivePixel[radioPixel];
+                    animationState[pixel].StartingColor = strip.GetPixelColor(pixel);
+                    animationState[pixel].EndingColor = color;
+                    animations.StartAnimation(pixel, time, RadioactiveAnimUpdate);
                 }
             }
-            radioActiveState = RadioActiveState_Increasing;
+            _radioActiveState = RadioActiveState_Increasing;
             break;
             }
         }
